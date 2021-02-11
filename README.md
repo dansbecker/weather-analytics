@@ -1,4 +1,6 @@
 # weather-analytics
-Just messing around with weather data to map differential climate changes across the globe over the past 20, 30 and 40 years.
+Home of code supporting [this climate analysis dashboard](https://share.streamlit.io/dansbecker/weather-analytics/main).
 
-End result will be an interactive dashboard.
+The first level of munging happens in `/sagemaker_notebooks` notebooks.
+
+The `download_data.sh` script downloads there output, which is then the basis for the Streamlit app.

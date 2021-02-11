@@ -9,6 +9,13 @@ from branca.colormap import linear, LinearColormap
 st.write('**Next step: Use the real data**')
 st.write('**Let user select time period**')
 
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
 @st.cache
 def read_base_file():
     station_stats = pd.read_csv('./data/station_stats.csv')
