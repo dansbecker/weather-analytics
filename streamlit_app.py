@@ -18,7 +18,7 @@ st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 @st.cache
 def get_annual_stats():
-    raw_data = pd.read_parquet('./data/weather_1970_to_2020.parquet')
+    raw_data = pd.read_parquet('./data/weather_1980_to_2020.parquet')
     raw_data['date'] = pd.to_datetime(raw_data.date)
     raw_data['year'] = raw_data.date.dt.year
     annual_stats = raw_data.fillna(0).groupby(['station_id', 'year']).agg(
@@ -59,19 +59,31 @@ reverse_colormap = {'slope_max_temp': True,
 
 @st.cache(allow_output_mutation=True)
 def make_city_graphs(allow_output_mutation=True):
-    def make_one_city_graphs(annual_this_city, city_name, annual_data_field):
+    # Folium converts vegalite scatters to line graphs in an ugly way. So, make a graph
+    # that looks good after the conversion, even if it looks different from standalone
+    def make_one_city_map_graphs(annual_this_city, city_name, annual_data_field):
         graph = alt.Chart(annual_this_city, title=city_name).mark_line().encode(
             alt.X('year', scale=alt.Scale(zero=False), axis=alt.Axis(format="d")),
             alt.Y(annual_data_field, scale=alt.Scale(zero=False)),
         )
         return graph
 
-    out = {}
+    def make_one_city_standalone_graphs(annual_this_city, city_name, annual_data_field):
+        graph = alt.Chart(annual_this_city, title=city_name).mark_point().encode(
+            alt.X('year', scale=alt.Scale(zero=False), axis=alt.Axis(format="d")),
+            alt.Y(annual_data_field, scale=alt.Scale(zero=False)),
+        )
+        return graph + graph.transform_regression('year', annual_data_field).mark_line()
+
+    out = {'for_map': {},
+           'standalone': {}}
     for _, city in station_stats.iterrows():
         annual_this_city = annual_stats.loc[annual_stats.station_id == city.station_id]
         city_name = city.municipality
         station_id = city.station_id
-        out[station_id] = {summary_stat: make_one_city_graphs(annual_this_city, city_name, annual_stat) 
+        out['for_map'][station_id] = {summary_stat: make_one_city_map_graphs(annual_this_city, city_name, annual_stat) 
+                        for summary_stat, annual_stat in name_in_annual_data.items()}
+        out['standalone'][city_name] = {annual_stat: make_one_city_standalone_graphs(annual_this_city, city_name, annual_stat) 
                         for summary_stat, annual_stat in name_in_annual_data.items()}
     return out
 
@@ -92,7 +104,7 @@ def make_map(field_to_color_by):
     colormap.add_to(main_map)
     for _, city in station_stats.iterrows():
         icon_color = colormap(city[field_to_color_by])
-        city_graph = city_graphs[city.station_id][field_to_color_by]
+        city_graph = city_graphs['for_map'][city.station_id][field_to_color_by]
         folium.CircleMarker(location=[city.lat, city.lon],
                     tooltip=f"{city.municipality}\n  value: {city[field_to_color_by]}{metric_unit}",
                     fill=True,
@@ -120,15 +132,14 @@ metric_for_map = st.selectbox('Climate metric for map',
 main_map = make_map(metric_for_map)
 
 folium_static(main_map)
-st.write('**TODO**:\nLet user select time period that map data is based off of')
-st.write('''
-Later time periods will have more locations.
-Currently hard coded to aggregate data from 1970 (limited to locations monitored continually since 1970).
-''')
 
 st.markdown("""---""")
-st.header('POSSIBLE TODO: Location Details')
-st.write('Let user select city from dropdowns and get a lot of info about that city')
+st.header('Single Location Focus')
+region = st.selectbox("Region", sorted(station_stats.region.unique()), index=0)
+city_name = st.selectbox("City", sorted(station_stats.loc[station_stats.region == region].municipality.unique()))
+for graph_name, graph in city_graphs['standalone'][city_name].items():
+    st.write(graph_name)
+    st.write(graph)
 
 st.markdown("""---""")
 st.header('POSSIBLE TODO: Scatterplot Exploration')
