@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import streamlit as st
 import altair as alt
@@ -6,7 +5,9 @@ from streamlit_folium import folium_static
 import folium
 from branca.colormap import linear, LinearColormap
 
-st.write('**Let user select time period**')
+st.header("Temporary Notes")
+st.write("This is scratchwork. The goal is an interactive tool to see how climate has changed in different locations.")
+st.write("Based on aggregations of raw daily weather data from: https://docs.opendata.aws/noaa-ghcn-pds/readme.html")
 
 hide_menu_style = """
         <style>
@@ -36,10 +37,6 @@ def read_base_file():
     station_stats['slope_min_temp'] = station_stats['slope_min_temp'].round(2)
     return station_stats
 
-START_YEAR = 1980
-END_YEAR = 2020
-num_years = END_YEAR - START_YEAR
-
 
 metric_descs = {'slope_max_temp': 'Annual change (degrees Celsius) in average daily high temp',
                 'slope_min_temp': 'Annual change (degrees Celsius) in average daily low temp',
@@ -59,13 +56,29 @@ reverse_colormap = {'slope_max_temp': True,
                     'pct_precip_change': False}
 
 
+
+@st.cache(allow_output_mutation=True)
+def make_city_graphs(allow_output_mutation=True):
+    def make_one_city_graphs(annual_this_city, city_name, annual_data_field):
+        graph = alt.Chart(annual_this_city, title=city_name).mark_line().encode(
+            alt.X('year', scale=alt.Scale(zero=False), axis=alt.Axis(format="d")),
+            alt.Y(annual_data_field, scale=alt.Scale(zero=False)),
+        )
+        return graph
+
+    out = {}
+    for _, city in station_stats.iterrows():
+        annual_this_city = annual_stats.loc[annual_stats.station_id == city.station_id]
+        city_name = city.municipality
+        station_id = city.station_id
+        out[station_id] = {summary_stat: make_one_city_graphs(annual_this_city, city_name, annual_stat) 
+                        for summary_stat, annual_stat in name_in_annual_data.items()}
+    return out
+
     
 @st.cache(hash_funcs={folium.folium.Map: lambda _: None}, allow_output_mutation=True)
 def make_map(field_to_color_by):
-    annual_data_field = name_in_annual_data[field_to_color_by]
-    city_plot_width = 200
-    city_plot_height = 200
-    main_map = folium.Map(width=800, height=500, zoom_start=3)
+    main_map = folium.Map(location=(39, -77), zoom_start=1)
     colormap = linear.RdYlBu_08.scale(station_stats[field_to_color_by].quantile(0.05),
                                       station_stats[field_to_color_by].quantile(0.95))
     if reverse_colormap[field_to_color_by]:
@@ -78,14 +91,8 @@ def make_map(field_to_color_by):
     colormap.caption = metric_desc
     colormap.add_to(main_map)
     for _, city in station_stats.iterrows():
-        annual_this_city = annual_stats.loc[annual_stats.station_id == city.station_id]
-        scatter = alt.Chart(annual_this_city).mark_point().encode(
-            alt.X('year', scale=alt.Scale(zero=False), axis=alt.Axis(format="d")),
-            alt.Y(annual_data_field, scale=alt.Scale(zero=False))
-        )
-
-        full_chart = scatter + scatter.transform_regression('year', annual_data_field).mark_line()
         icon_color = colormap(city[field_to_color_by])
+        city_graph = city_graphs[city.station_id][field_to_color_by]
         folium.CircleMarker(location=[city.lat, city.lon],
                     tooltip=f"{city.municipality}\n  value: {city[field_to_color_by]}{metric_unit}",
                     fill=True,
@@ -94,19 +101,18 @@ def make_map(field_to_color_by):
                     fill_opacity=0.7,
                     radius=5,
                     popup = folium.Popup().add_child(
-                                            folium.features.VegaLite(full_chart.to_json(),
-                                                                     width=city_plot_width + 50,
-                                                                     height=city_plot_height + 50
-                                                                     )
+                                            folium.features.VegaLite(city_graph)
                                             )
                     ).add_to(main_map)
     return main_map
 
 annual_stats = get_annual_stats()
 station_stats = read_base_file()
+city_graphs = make_city_graphs()
 
 st.header('Map')
-
+st.write("Note: You can zoom in. Get the history for a location by clicking on it.")
+st.write("**TODO:** Make sure we are showing all cities with available data.")
 metric_for_map = st.selectbox('Climate metric for map',
                               options=list(metric_descs.keys()),
                               index=0,
@@ -114,12 +120,20 @@ metric_for_map = st.selectbox('Climate metric for map',
 main_map = make_map(metric_for_map)
 
 folium_static(main_map)
+st.write('**TODO**:\nLet user select time period that map data is based off of')
+st.write('''
+Later time periods will have more locations.
+Currently hard coded to aggregate data from 1970 (limited to locations monitored continually since 1970).
+''')
 
 st.markdown("""---""")
-st.header('Location Details')
+st.header('POSSIBLE TODO: Location Details')
+st.write('Let user select city from dropdowns and get a lot of info about that city')
 
 st.markdown("""---""")
-st.header('Scatterplot Exploration')
-st.markdown("""---""")
+st.header('POSSIBLE TODO: Scatterplot Exploration')
+st.write("""Select two variables (e.g. latitude vs temp change) and see scatterplot""")
+st.write("""Variables include lat, lon, elevation, avg temp change over different time periods, annual % precip change, etc""")
 
-
+st.header('POSSIBLE TODO: Look at Seasonal Results')
+st.write('Allow user to specify they want results just for a specific season or calendar month. Those look different than annual averages')
