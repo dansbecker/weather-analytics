@@ -5,8 +5,8 @@ from streamlit_folium import folium_static
 import folium
 from branca.colormap import linear, LinearColormap
 
-st.header("Temporary Notes")
-st.write("This is scratchwork. The goal is an interactive tool to see how climate has changed in different locations.")
+st.header("Quick Overview")
+st.write("I wanted to understand .")
 st.write("Based on aggregations of raw daily weather data from: https://docs.opendata.aws/noaa-ghcn-pds/readme.html")
 
 hide_menu_style = """
@@ -140,11 +140,6 @@ city_name = st.selectbox("City", sorted(station_stats.loc[station_stats.region =
 for graph_name, graph in city_graphs['standalone'][city_name].items():
     st.write(graph_name)
     st.write(graph)
-
-st.markdown("""---""")
-st.header('POSSIBLE TODO: Scatterplot Exploration')
-st.write("""Select two variables (e.g. latitude vs temp change) and see scatterplot""")
-st.write("""Variables include lat, lon, elevation, avg temp change over different time periods, annual % precip change, etc""")
 
 st.header('POSSIBLE TODO: Look at Seasonal Results')
 st.write('Allow user to specify they want results just for a specific season or calendar month. Those look different than annual averages')
