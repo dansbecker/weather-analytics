@@ -9,13 +9,7 @@ st.header("Climate Changes Between 1980-2020")
 st.write("""
 Climate change has had highly variable effects in different places.
 
-Some places are wetter today than they were in 40 years ago. Others are drier. 
-
-Some are warmer, while others have the same average temperature as they did a few decades ago.
-
-Here's a quick dashboard to see the climate impacts so far. 
-
-For each city, you can see changes in
+This dashboard lets you see the climate impacts so far. For each city, you can see changes in
 
 1. Daily high temperatures 
 2. Daily low temperatures
@@ -24,8 +18,6 @@ For each city, you can see changes in
 Use the map for quick comparisons. Then use the menu at the bottom to drill into single city data.
 
 Results are aggregations of [this raw daily weather data](https://docs.opendata.aws/noaa-ghcn-pds/readme.html). This page doesn't show extreme weather events. Changes in extreme weather are more important, but that topic deserves a more detailed review than this page.
-
-
 
 """)
 
