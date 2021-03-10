@@ -70,8 +70,8 @@ name_in_annual_data = {'slope_max_temp': 'max_temp_c',
                        'slope_min_temp': 'min_temp_c',
                        'pct_precip_change': 'precip_mm',}
 
-graph_descriptions = {'max_temp_c': 'Average daily high temperature (Celtius)',
-                      'min_temp_c': 'Average daily low temperature (Celtius)',
+graph_descriptions = {'max_temp_c': 'Average daily high temperature (Celsius)',
+                      'min_temp_c': 'Average daily low temperature (Celsius)',
                       'precip_mm': 'Total Precipitation (millimeters)', 
 }
 
