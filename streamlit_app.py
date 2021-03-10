@@ -5,9 +5,29 @@ from streamlit_folium import folium_static
 import folium
 from branca.colormap import linear, LinearColormap
 
-st.header("Quick Overview")
-st.write("I wanted to understand .")
-st.write("Based on aggregations of raw daily weather data from: https://docs.opendata.aws/noaa-ghcn-pds/readme.html")
+st.header("Climate Changes Between 1980-2020")
+st.write("""
+Climate change has had highly variable effects in different places.
+
+Some places are wetter today than they were in 40 years ago. Others are drier. 
+
+Some are warmer, while others have the same average temperature as they did a few decades ago.
+
+Here's a quick dashboard to see the climate impacts so far. 
+
+For each city, you can see changes in
+
+1. Daily high temperatures 
+2. Daily low temperatures
+3. Total precipitation
+
+Use the map for quick comparisons. Then use the menu at the bottom to drill into single city data.
+
+Results are aggregations of [this raw daily weather data](https://docs.opendata.aws/noaa-ghcn-pds/readme.html). This page doesn't show extreme weather events. Changes in extreme weather are more important, but that topic deserves a more detailed review than this page.
+
+
+
+""")
 
 hide_menu_style = """
         <style>
@@ -50,6 +70,10 @@ name_in_annual_data = {'slope_max_temp': 'max_temp_c',
                        'slope_min_temp': 'min_temp_c',
                        'pct_precip_change': 'precip_mm',}
 
+graph_descriptions = {'max_temp_c': 'Average daily high temperature (Celtius)',
+                      'min_temp_c': 'Average daily low temperature (Celtius)',
+                      'precip_mm': 'Total Precipitation (millimeters)', 
+}
 
 reverse_colormap = {'slope_max_temp': True,
                     'slope_min_temp': True,
@@ -71,7 +95,7 @@ def make_city_graphs(allow_output_mutation=True):
     def make_one_city_standalone_graphs(annual_this_city, city_name, annual_data_field):
         graph = alt.Chart(annual_this_city, title=city_name).mark_point().encode(
             alt.X('year', scale=alt.Scale(zero=False), axis=alt.Axis(format="d")),
-            alt.Y(annual_data_field, scale=alt.Scale(zero=False)),
+            alt.Y(annual_data_field, scale=alt.Scale(zero=False), title=''),
         )
         return graph + graph.transform_regression('year', annual_data_field).mark_line()
 
@@ -123,8 +147,9 @@ station_stats = read_base_file()
 city_graphs = make_city_graphs()
 
 st.header('Map')
-st.write("Note: You can zoom in. Get the history for a location by clicking on it.")
-st.write("**TODO:** Make sure we are showing all cities with available data.")
+st.write("""
+You can zoom into the map, or get a city's history by clicking on it.
+""")
 metric_for_map = st.selectbox('Climate metric for map',
                               options=list(metric_descs.keys()),
                               index=0,
@@ -133,13 +158,20 @@ main_map = make_map(metric_for_map)
 
 folium_static(main_map)
 
+st.write("""
+
+*Details:*
+
+1. Cities are color-coded based on coefficients of a linear regression model. 
+2. Cities are included iff they have data available for 99% of days since 1980. 
+""")
 st.markdown("""---""")
-st.header('Single Location Focus')
+st.header('Single Location Drilldown')
 region = st.selectbox("Region", sorted(station_stats.region.unique()), index=0)
 city_name = st.selectbox("City", sorted(station_stats.loc[station_stats.region == region].municipality.unique()))
 for graph_name, graph in city_graphs['standalone'][city_name].items():
-    st.write(graph_name)
+    st.write(graph_descriptions[graph_name])
     st.write(graph)
 
-st.header('POSSIBLE TODO: Look at Seasonal Results')
-st.write('Allow user to specify they want results just for a specific season or calendar month. Those look different than annual averages')
+# st.header('POSSIBLE TODO: Look at Seasonal Results')
+# st.write('Allow user to specify they want results just for a specific season or calendar month. Those look different than annual averages')
